@@ -9,10 +9,8 @@ const ScheduleManager = ({ schedule, setSchedule, currentUser, subjects }) => {
   });
 
   const [timeSlots, setTimeSlots] = useState([]);
-  // Agregamos Sábado a la lista de días
   const days = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 
-  // Generar franjas horarias de 30 minutos entre 7:00 y 20:00
   useEffect(() => {
     const slots = [];
     for (let hour = 7; hour < 20; hour++) {
@@ -22,12 +20,61 @@ const ScheduleManager = ({ schedule, setSchedule, currentUser, subjects }) => {
     setTimeSlots(slots);
   }, []);
 
-  // ... (resto del código anterior permanece igual hasta el return)
+  // 🔧 FUNCIONES FALTANTES:
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setNewSchedule(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+
+    const duplicado = schedule.some(
+      item =>
+        item.subject === newSchedule.subject &&
+        item.day === newSchedule.day &&
+        item.startTime === newSchedule.startTime
+    );
+
+    if (duplicado) {
+      alert("Este horario ya existe");
+      return;
+    }
+
+    setSchedule(prev => [
+      ...prev,
+      { ...newSchedule, teacher: currentUser?.name || "Docente" }
+    ]);
+
+    setNewSchedule({
+      subject: '',
+      day: 'Lunes',
+      startTime: '08:00',
+      endTime: '09:00'
+    });
+  };
+
+  const findClassAtTime = (day, time) => {
+    return schedule.find(item => item.day === day && item.startTime === time);
+  };
+
+  const calculateRowSpan = (day, time, classItem) => {
+    if (!classItem || classItem.startTime !== time) return 0;
+
+    const [startH, startM] = classItem.startTime.split(':').map(Number);
+    const [endH, endM] = classItem.endTime.split(':').map(Number);
+    const duration = (endH * 60 + endM - (startH * 60 + startM)) / 30;
+
+    return duration;
+  };
 
   return (
     <div className="space-y-8">
       <h2 className="text-2xl font-bold text-gray-800">Gestor de Horarios</h2>
-      
+
       {/* Formulario para agregar horarios */}
       <div className="bg-white p-6 rounded-lg shadow-md">
         <h3 className="text-xl font-semibold mb-4">Agregar Nuevo Horario</h3>
@@ -39,7 +86,7 @@ const ScheduleManager = ({ schedule, setSchedule, currentUser, subjects }) => {
                 name="subject"
                 value={newSchedule.subject}
                 onChange={handleInputChange}
-                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-4 py-2 border rounded-lg"
                 required
               >
                 <option value="">Seleccionar materia</option>
@@ -48,13 +95,14 @@ const ScheduleManager = ({ schedule, setSchedule, currentUser, subjects }) => {
                 ))}
               </select>
             </div>
+
             <div>
               <label className="block text-gray-700 mb-2">Día</label>
               <select
                 name="day"
                 value={newSchedule.day}
                 onChange={handleInputChange}
-                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-4 py-2 border rounded-lg"
                 required
               >
                 {days.map((day) => (
@@ -62,7 +110,34 @@ const ScheduleManager = ({ schedule, setSchedule, currentUser, subjects }) => {
                 ))}
               </select>
             </div>
-            {/* ... (resto del formulario permanece igual) */}
+
+            <div>
+              <label className="block text-gray-700 mb-2">Hora Inicio</label>
+              <select
+                name="startTime"
+                value={newSchedule.startTime}
+                onChange={handleInputChange}
+                className="w-full px-4 py-2 border rounded-lg"
+              >
+                {timeSlots.map((time) => (
+                  <option key={time} value={time}>{time}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-gray-700 mb-2">Hora Fin</label>
+              <select
+                name="endTime"
+                value={newSchedule.endTime}
+                onChange={handleInputChange}
+                className="w-full px-4 py-2 border rounded-lg"
+              >
+                {timeSlots.map((time) => (
+                  <option key={time} value={time}>{time}</option>
+                ))}
+              </select>
+            </div>
           </div>
           <button
             type="submit"
@@ -73,7 +148,7 @@ const ScheduleManager = ({ schedule, setSchedule, currentUser, subjects }) => {
         </form>
       </div>
 
-      {/* Visualización del horario semanal - ahora con 6 columnas (incluyendo Sábado) */}
+      {/* Visualización del horario semanal */}
       <div className="bg-white p-6 rounded-lg shadow-md overflow-x-auto">
         <h3 className="text-xl font-semibold mb-4">Horario Semanal</h3>
         <table className="w-full border-collapse">
@@ -96,9 +171,7 @@ const ScheduleManager = ({ schedule, setSchedule, currentUser, subjects }) => {
 
               return (
                 <tr key={time}>
-                  <td className="p-2 border-b border-r font-medium bg-gray-50">
-                    {time}
-                  </td>
+                  <td className="p-2 border-b border-r font-medium bg-gray-50">{time}</td>
                   {days.map(day => {
                     const classItem = findClassAtTime(day, time);
                     const rowSpan = calculateRowSpan(day, time, classItem);
@@ -106,8 +179,8 @@ const ScheduleManager = ({ schedule, setSchedule, currentUser, subjects }) => {
                     if (rowSpan === 0) return null;
 
                     return (
-                      <td 
-                        key={`${day}-${time}`} 
+                      <td
+                        key={`${day}-${time}`}
                         className="p-0 border-b border-r"
                         rowSpan={rowSpan}
                       >
@@ -134,5 +207,3 @@ const ScheduleManager = ({ schedule, setSchedule, currentUser, subjects }) => {
 };
 
 export default ScheduleManager;
-
-// DONE
